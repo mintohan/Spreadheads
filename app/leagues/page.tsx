@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import AppShell from "../components/AppShell";
 import { createClient } from "../../lib/supabase/client";
 
@@ -35,12 +36,16 @@ interface LeagueForm {
 }
 
 export default function LeaguesPage() {
+  const router = useRouter();
   const [myLeagues, setMyLeagues] = useState<League[]>([]);
   const [publicLeagues, setPublicLeagues] = useState<League[]>([]);
   const [myRanks, setMyRanks] = useState<Record<string, number>>({});
   const [activeTab, setActiveTab] = useState<"my" | "discover">("my");
   const [showCreate, setShowCreate] = useState(false);
-  const [viewLeague, setViewLeague] = useState<string | null>(null);
+  const [showJoinCode, setShowJoinCode] = useState(false);
+  const [inviteCode, setInviteCode] = useState("");
+  const [joinCodeError, setJoinCodeError] = useState("");
+  const [joiningCode, setJoiningCode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [form, setForm] = useState<LeagueForm>({
@@ -91,6 +96,20 @@ export default function LeaguesPage() {
     loadData();
   }
 
+  async function handleJoinByCode() {
+    if (!inviteCode.trim() || !userId) return;
+    setJoiningCode(true);
+    setJoinCodeError("");
+    const { data: league } = await supabase.from("leagues").select("*").eq("invite_code", inviteCode.trim().toUpperCase()).single();
+    if (!league) { setJoinCodeError("Invalid invite code. Check it and try again."); setJoiningCode(false); return; }
+    const { data: existing } = await supabase.from("league_members").select("league_id").eq("league_id", league.id).eq("user_id", userId).maybeSingle();
+    if (existing) { router.push(`/leagues/${league.id}`); return; }
+    if (league.member_count >= league.max_members) { setJoinCodeError("This league is full."); setJoiningCode(false); return; }
+    await supabase.from("league_members").insert({ league_id: league.id, user_id: userId });
+    await supabase.from("leagues").update({ member_count: league.member_count + 1 }).eq("id", league.id);
+    router.push(`/leagues/${league.id}`);
+  }
+
   async function handleCreate() {
     if (!form.name.trim() || !userId) return;
     const { data, error } = await supabase.from("leagues").insert({
@@ -114,64 +133,31 @@ export default function LeaguesPage() {
     }
   }
 
-  const allLeagues = [...myLeagues, ...publicLeagues];
-  const viewing = viewLeague ? allLeagues.find((l) => l.id === viewLeague) : null;
-  const isMyLeague = viewLeague ? myLeagues.some((l) => l.id === viewLeague) : false;
-
   return (
     <AppShell>
       <div className="max-w-4xl mx-auto px-4 py-6">
-        {viewing && (
+        {/* Join by code modal */}
+        {showJoinCode && (
           <div className="fixed inset-0 z-50 bg-[#060d18]/90 backdrop-blur flex items-center justify-center p-4">
-            <div className="bg-[#0a1628] border border-[#152d52] rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-              <div className="h-24 relative flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${viewing.color}22, ${viewing.color}44)` }}>
-                <span className="text-5xl">{viewing.emoji}</span>
-                <button onClick={() => setViewLeague(null)} className="absolute top-3 right-3 text-white/70 hover:text-white text-xl">✕</button>
+            <div className="bg-[#0a1628] border border-[#152d52] rounded-2xl w-full max-w-sm p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-white">Join with Invite Code</h2>
+                <button onClick={() => { setShowJoinCode(false); setInviteCode(""); setJoinCodeError(""); }} className="text-slate-400 hover:text-white text-xl">✕</button>
               </div>
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-1">
-                  <h2 className="text-xl font-bold text-white">{viewing.name}</h2>
-                  <span className={`text-xs px-2 py-1 rounded-full border ${viewing.privacy === "public" ? "text-green-400 border-green-400/30" : "text-amber-400 border-amber-400/30"}`}>
-                    {viewing.privacy === "public" ? "🌐 Public" : "🔒 Private"}
-                  </span>
-                </div>
-                <p className="text-slate-400 text-sm mb-4">{viewing.description}</p>
-                <div className="grid grid-cols-3 gap-3 mb-4">
-                  <div className="bg-[#060d18] rounded-xl p-3 text-center"><div className="text-white font-bold">{viewing.member_count}/{viewing.max_members}</div><div className="text-xs text-slate-500">Members</div></div>
-                  <div className="bg-[#060d18] rounded-xl p-3 text-center"><div className="text-white font-bold capitalize">{viewing.format}</div><div className="text-xs text-slate-500">Format</div></div>
-                  <div className="bg-[#060d18] rounded-xl p-3 text-center"><div className="text-white font-bold">{viewing.sport}</div><div className="text-xs text-slate-500">Sport</div></div>
-                </div>
-                <div className="bg-[#060d18] rounded-xl p-4 mb-4 space-y-2">
-                  <div className="flex justify-between text-sm"><span className="text-slate-500">Prize</span><span className="text-amber-400">{viewing.prize}</span></div>
-                  <div className="flex justify-between text-sm"><span className="text-slate-500">Season</span><span className="text-white">{viewing.season}</span></div>
-                </div>
-                {isMyLeague && myRanks[viewing.id] && (
-                  <div className="bg-[#38bdf8]/10 border border-[#38bdf8]/20 rounded-xl p-3 mb-4 text-center">
-                    <div className="text-[#38bdf8] font-bold text-lg">#{myRanks[viewing.id]}</div>
-                    <div className="text-xs text-slate-400">Your Current Rank</div>
-                  </div>
-                )}
-                {viewing.privacy === "private" && isMyLeague && (
-                  <div className="bg-[#060d18] rounded-xl p-3 mb-4 flex items-center justify-between">
-                    <div><div className="text-xs text-slate-500">Invite Code</div><div className="text-white font-mono font-bold">{viewing.invite_code}</div></div>
-                    <button onClick={() => navigator.clipboard.writeText(viewing.invite_code)} className="text-xs text-[#38bdf8] border border-[#38bdf8]/30 px-3 py-1.5 rounded-lg">Copy</button>
-                  </div>
-                )}
-                <div className="flex gap-3">
-                  {isMyLeague ? (
-                    <button onClick={() => { handleLeave(viewing.id); setViewLeague(null); }}
-                      className="flex-1 py-2.5 rounded-xl font-semibold text-sm bg-[#152d52] text-slate-400 hover:bg-red-500/20 hover:text-red-400 transition-all">
-                      Leave League
-                    </button>
-                  ) : (
-                    <button onClick={() => { handleJoin(viewing.id); setViewLeague(null); }}
-                      className="flex-1 py-2.5 rounded-xl font-semibold text-sm bg-[#38bdf8] text-[#060d18] hover:bg-[#7dd3fc] transition-all">
-                      Join League
-                    </button>
-                  )}
-                  <button onClick={() => setViewLeague(null)} className="px-4 py-2.5 border border-[#152d52] text-slate-400 rounded-xl text-sm hover:text-white">Close</button>
-                </div>
-              </div>
+              <p className="text-slate-400 text-sm mb-4">Enter the invite code your friend shared with you.</p>
+              <input
+                value={inviteCode}
+                onChange={(e) => { setInviteCode(e.target.value.toUpperCase()); setJoinCodeError(""); }}
+                onKeyDown={(e) => e.key === "Enter" && handleJoinByCode()}
+                placeholder="e.g. ABC123"
+                maxLength={10}
+                className="w-full bg-[#060d18] border border-[#152d52] focus:border-[#38bdf8]/50 rounded-xl px-4 py-3 text-white font-mono text-lg text-center tracking-widest outline-none mb-2 placeholder-slate-600"
+              />
+              {joinCodeError && <p className="text-red-400 text-xs mb-3">{joinCodeError}</p>}
+              <button onClick={handleJoinByCode} disabled={!inviteCode.trim() || joiningCode}
+                className={`w-full py-3 rounded-xl font-semibold text-sm mt-2 transition-all ${inviteCode.trim() ? "bg-[#38bdf8] text-[#060d18] hover:bg-[#7dd3fc]" : "bg-[#152d52] text-slate-500 cursor-not-allowed"}`}>
+                {joiningCode ? "Joining..." : "Join League"}
+              </button>
             </div>
           </div>
         )}
@@ -263,9 +249,14 @@ export default function LeaguesPage() {
             <h1 className="text-2xl font-bold text-white">🏆 Leagues</h1>
             <p className="text-slate-400 text-sm mt-1">Compete with friends and the world</p>
           </div>
-          <button onClick={() => setShowCreate(true)} className="bg-[#38bdf8] text-[#060d18] font-semibold text-sm px-4 py-2.5 rounded-xl hover:bg-[#7dd3fc] transition-all">
-            + Create
-          </button>
+          <div className="flex gap-2">
+            <button onClick={() => setShowJoinCode(true)} className="border border-[#152d52] text-slate-300 font-medium text-sm px-4 py-2.5 rounded-xl hover:border-[#38bdf8]/40 hover:text-white transition-all">
+              Enter Code
+            </button>
+            <button onClick={() => setShowCreate(true)} className="bg-[#38bdf8] text-[#060d18] font-semibold text-sm px-4 py-2.5 rounded-xl hover:bg-[#7dd3fc] transition-all">
+              + Create
+            </button>
+          </div>
         </div>
 
         <div className="flex gap-2 mb-6 bg-[#0a1628] p-1 rounded-xl w-fit">
@@ -317,8 +308,8 @@ export default function LeaguesPage() {
                     ))}
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => setViewLeague(league.id)} className="flex-1 py-2 bg-[#38bdf8]/10 border border-[#38bdf8]/30 text-[#38bdf8] text-xs font-medium rounded-lg hover:bg-[#38bdf8]/20 transition-all">
-                      View Details
+                    <button onClick={() => router.push(`/leagues/${league.id}`)} className="flex-1 py-2 bg-[#38bdf8]/10 border border-[#38bdf8]/30 text-[#38bdf8] text-xs font-medium rounded-lg hover:bg-[#38bdf8]/20 transition-all">
+                      View League →
                     </button>
                     {league.privacy === "private" && (
                       <button onClick={() => navigator.clipboard.writeText(league.invite_code)} className="px-3 py-2 border border-[#152d52] text-slate-400 text-xs rounded-lg hover:text-white transition-colors">
@@ -352,9 +343,9 @@ export default function LeaguesPage() {
                     <span className="text-xs text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded-full">{league.prize}</span>
                     <span className="text-xs text-slate-500 capitalize">{league.format}</span>
                   </div>
-                  <button onClick={() => { handleJoin(league.id); setActiveTab("my"); }}
+                  <button onClick={() => router.push(`/leagues/${league.id}`)}
                     className="w-full py-2 bg-[#38bdf8]/10 border border-[#38bdf8]/30 text-[#38bdf8] text-xs font-medium rounded-lg hover:bg-[#38bdf8]/20 transition-all">
-                    Join League
+                    View & Join →
                   </button>
                 </div>
               ))}

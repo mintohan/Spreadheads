@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import AppShell from "../components/AppShell";
 import { createClient } from "../../lib/supabase/client";
 
@@ -32,13 +33,13 @@ interface CommunityForm {
 }
 
 export default function CommunitiesPage() {
+  const router = useRouter();
   const [communities, setCommunities] = useState<Community[]>([]);
   const [joined, setJoined] = useState<Record<string, boolean>>({});
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [activeTab, setActiveTab] = useState<"discover" | "mine">("discover");
-  const [viewCommunity, setViewCommunity] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [form, setForm] = useState<CommunityForm>({
@@ -110,47 +111,10 @@ export default function CommunitiesPage() {
   });
 
   const myCommunities = communities.filter((c) => joined[c.id]);
-  const viewing = viewCommunity ? communities.find((c) => c.id === viewCommunity) : null;
 
   return (
     <AppShell>
       <div className="max-w-4xl mx-auto px-4 py-6">
-        {/* Detail modal */}
-        {viewing && (
-          <div className="fixed inset-0 z-50 bg-[#060d18]/90 backdrop-blur flex items-center justify-center p-4">
-            <div className="bg-[#0a1628] border border-[#152d52] rounded-2xl w-full max-w-lg overflow-hidden">
-              <div className="h-24 relative flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${viewing.color}22, ${viewing.color}44)` }}>
-                <span className="text-5xl">{viewing.emoji}</span>
-                <button onClick={() => setViewCommunity(null)} className="absolute top-3 right-3 text-white/70 hover:text-white text-xl">✕</button>
-              </div>
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-2">
-                  <h2 className="text-xl font-bold text-white">{viewing.name}</h2>
-                  <span className={`text-xs px-2 py-1 rounded-full border ${viewing.privacy === "public" ? "text-green-400 border-green-400/30" : "text-amber-400 border-amber-400/30"}`}>
-                    {viewing.privacy === "public" ? "🌐 Public" : "🔒 Private"}
-                  </span>
-                </div>
-                <p className="text-slate-400 text-sm mb-4">{viewing.description}</p>
-                <div className="flex gap-6 mb-5">
-                  <div className="text-center"><div className="text-white font-bold">{viewing.member_count.toLocaleString()}</div><div className="text-xs text-slate-500">Members</div></div>
-                  <div className="text-center"><div className="text-white font-bold">{viewing.post_count}</div><div className="text-xs text-slate-500">Posts</div></div>
-                  <div className="text-center"><div className="text-white font-bold">{viewing.sport}</div><div className="text-xs text-slate-500">Sport</div></div>
-                </div>
-                <div className="bg-[#060d18] rounded-xl p-3 mb-5">
-                  <div className="text-xs text-slate-500 mb-1">Recent Activity</div>
-                  <div className="text-sm text-slate-300">{viewing.recent_activity}</div>
-                </div>
-                <div className="flex gap-3">
-                  <button onClick={() => { handleJoin(viewing.id); setViewCommunity(null); }}
-                    className={`flex-1 py-2.5 rounded-xl font-semibold text-sm transition-all ${joined[viewing.id] ? "bg-[#152d52] text-slate-400 hover:bg-red-500/20 hover:text-red-400" : "bg-[#38bdf8] text-[#060d18] hover:bg-[#7dd3fc]"}`}>
-                    {joined[viewing.id] ? "Leave Community" : "Join Community"}
-                  </button>
-                  <button onClick={() => setViewCommunity(null)} className="px-4 py-2.5 border border-[#152d52] text-slate-400 rounded-xl text-sm hover:text-white">Close</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Create modal */}
         {showCreate && (
@@ -265,7 +229,7 @@ export default function CommunitiesPage() {
                 <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">🔥 Trending</h2>
                 <div className="flex gap-3 overflow-x-auto pb-2">
                   {filtered.filter(c => c.trending).map((c) => (
-                    <button key={c.id} onClick={() => setViewCommunity(c.id)} className="flex-shrink-0 card card-hover p-4 w-48 text-left">
+                    <button key={c.id} onClick={() => router.push(`/communities/${c.id}`)} className="flex-shrink-0 card card-hover p-4 w-48 text-left">
                       <div className="text-3xl mb-2">{c.emoji}</div>
                       <div className="text-sm font-semibold text-white truncate">{c.name}</div>
                       <div className="text-xs text-slate-500 mt-1">{c.member_count.toLocaleString()} members</div>
@@ -282,7 +246,7 @@ export default function CommunitiesPage() {
                     <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0" style={{ background: `${c.color}22` }}>{c.emoji}</div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
-                        <button onClick={() => setViewCommunity(c.id)} className="text-sm font-semibold text-white hover:text-[#38bdf8] transition-colors text-left truncate">{c.name}</button>
+                        <button onClick={() => router.push(`/communities/${c.id}`)} className="text-sm font-semibold text-white hover:text-[#38bdf8] transition-colors text-left truncate">{c.name}</button>
                         {c.trending && <span className="text-[10px] bg-orange-500/20 text-orange-400 border border-orange-400/20 px-1.5 py-0.5 rounded-full flex-shrink-0">HOT</span>}
                       </div>
                       <div className="text-xs text-slate-500 mt-0.5">{c.member_count.toLocaleString()} members · {c.sport}</div>
@@ -317,7 +281,7 @@ export default function CommunitiesPage() {
                   <div className="text-xs text-slate-400 mt-1">{c.recent_activity}</div>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => setViewCommunity(c.id)} className="text-xs border border-[#152d52] text-slate-400 px-3 py-1.5 rounded-lg hover:text-white transition-colors">View</button>
+                  <button onClick={() => router.push(`/communities/${c.id}`)} className="text-xs border border-[#152d52] text-slate-400 px-3 py-1.5 rounded-lg hover:text-white transition-colors">View</button>
                   <button onClick={() => handleJoin(c.id)} className="text-xs border border-red-400/30 text-red-400 px-3 py-1.5 rounded-lg hover:bg-red-400/10 transition-colors">Leave</button>
                 </div>
               </div>
