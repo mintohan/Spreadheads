@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { createClient } from "../../../lib/supabase/client";
 import Link from "next/link";
+
 export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
-  const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
@@ -18,7 +18,6 @@ export default function SignupPage() {
     setLoading(true);
     setError("");
 
-    // Check username available
     const { data: existing } = await supabase
       .from("profiles")
       .select("id")
@@ -37,7 +36,7 @@ export default function SignupPage() {
       options: {
         data: {
           username: username.toLowerCase(),
-          display_name: displayName || username,
+          display_name: username,
         },
       },
     });
@@ -76,26 +75,15 @@ export default function SignupPage() {
 
         <div className="card p-6">
           <form onSubmit={handleSignup} className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-slate-400 block mb-1.5">Username *</label>
-                <input
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value.replace(/\s/g, "").toLowerCase())}
-                  required
-                  placeholder="sharktank99"
-                  className="w-full bg-[#060d18] border border-[#152d52] rounded-xl px-3 py-3 text-white text-sm outline-none focus:border-[#38bdf8]/50 placeholder-slate-600"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-slate-400 block mb-1.5">Display Name</label>
-                <input
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="Shark Tank"
-                  className="w-full bg-[#060d18] border border-[#152d52] rounded-xl px-3 py-3 text-white text-sm outline-none focus:border-[#38bdf8]/50 placeholder-slate-600"
-                />
-              </div>
+            <div>
+              <label className="text-xs text-slate-400 block mb-1.5">Username *</label>
+              <input
+                value={username}
+                onChange={(e) => setUsername(e.target.value.replace(/\s/g, ""))}
+                required
+                placeholder="sharktank99"
+                className="w-full bg-[#060d18] border border-[#152d52] rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-[#38bdf8]/50 placeholder-slate-600"
+              />
             </div>
             <div>
               <label className="text-xs text-slate-400 block mb-1.5">Email *</label>
