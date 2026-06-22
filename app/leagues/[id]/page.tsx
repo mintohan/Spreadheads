@@ -63,7 +63,10 @@ export default function LeaguePage() {
 
       if (!leagueData) { router.push("/leagues"); return; }
       setLeague(leagueData);
-      if (membersData) setMembers(membersData as Member[]);
+      if (membersData) setMembers(membersData.map((m: { user_id: string; profiles: unknown }) => ({
+        user_id: m.user_id,
+        profiles: Array.isArray(m.profiles) ? (m.profiles[0] ?? null) : m.profiles as Member["profiles"],
+      })));
       setIsMember(!!membership);
       setLoading(false);
     }

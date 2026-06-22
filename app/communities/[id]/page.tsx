@@ -75,14 +75,20 @@ export default function CommunityPage() {
 
       if (!communityData) { router.push("/communities"); return; }
       setCommunity(communityData);
-      if (postsData) setPosts(postsData as Post[]);
+      if (postsData) setPosts(postsData.map((p: { id: string; body: string; like_count: number; created_at: string; user_id: string; profiles: unknown }) => ({
+        ...p,
+        profiles: Array.isArray(p.profiles) ? (p.profiles[0] ?? null) : p.profiles as Post["profiles"],
+      })));
       setIsMember(!!membership);
       if (likesData) {
         const map: Record<string, boolean> = {};
         likesData.forEach((l) => { map[l.post_id] = true; });
         setLikedPosts(map);
       }
-      if (membersData) setMembers(membersData as typeof members);
+      if (membersData) setMembers(membersData.map((m: { user_id: string; profiles: unknown }) => ({
+        user_id: m.user_id,
+        profiles: Array.isArray(m.profiles) ? (m.profiles[0] ?? null) : m.profiles as typeof members[0]["profiles"],
+      })));
       setLoading(false);
     }
     load();
