@@ -118,17 +118,17 @@ export default function HomePage() {
                 Welcome to SpreadHeads, {profile?.display_name} 🦈
               </h1>
               <p className="text-slate-400 mb-6 max-w-lg">
-                The social pick&#39;em where you compete against friends, join communities, and prove you know sports better than everyone else.
+                Create a league with your friends, join a community, and compete to see who really knows sports. Picks are how you score — but leagues and communities are how you win.
               </p>
               <div className="flex flex-wrap gap-3">
-                <Link href="/picks" className="bg-[#38bdf8] text-[#060d18] font-semibold px-5 py-2.5 rounded-xl hover:bg-[#7dd3fc] transition-all text-sm">
-                  🎯 Make Your First Pick
-                </Link>
-                <Link href="/communities" className="bg-[#0a1628] border border-[#152d52] text-white font-medium px-5 py-2.5 rounded-xl hover:border-[#38bdf8]/40 transition-all text-sm">
-                  👥 Find a Community
+                <Link href="/friends" className="bg-[#38bdf8] text-[#060d18] font-semibold px-5 py-2.5 rounded-xl hover:bg-[#7dd3fc] transition-all text-sm">
+                  🤝 Add Friends
                 </Link>
                 <Link href="/leagues" className="bg-[#0a1628] border border-[#152d52] text-white font-medium px-5 py-2.5 rounded-xl hover:border-[#38bdf8]/40 transition-all text-sm">
                   🏆 Join a League
+                </Link>
+                <Link href="/communities" className="bg-[#0a1628] border border-[#152d52] text-white font-medium px-5 py-2.5 rounded-xl hover:border-[#38bdf8]/40 transition-all text-sm">
+                  👥 Find a Community
                 </Link>
               </div>
             </div>
@@ -162,10 +162,10 @@ export default function HomePage() {
             <h2 className="font-semibold text-white mb-4">Get started</h2>
             <div className="space-y-3">
               {[
-                { label: "Make your first pick", href: "/picks", icon: "🎯", done: recentPicks.length > 0 },
-                { label: "Join a community", href: "/communities", icon: "👥", done: inCommunities },
-                { label: "Join or create a league", href: "/leagues", icon: "🏆", done: inLeagues },
-                { label: "Find friends", href: "/friends", icon: "🤝", done: false },
+                { label: "Add a friend", href: "/friends", icon: "🤝", done: false, sub: "Search by username and connect" },
+                { label: "Join or create a league", href: "/leagues", icon: "🏆", done: inLeagues, sub: "Compete on a leaderboard with your crew" },
+                { label: "Join a community", href: "/communities", icon: "👥", done: inCommunities, sub: "Find groups to talk picks with" },
+                { label: "Make your first pick", href: "/picks", icon: "🎯", done: recentPicks.length > 0, sub: "Pick the spread on today's games" },
               ].map((step) => (
                 <Link key={step.href} href={step.href}
                   className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${step.done ? "border-green-500/20 bg-green-500/5" : "border-[#152d52] hover:border-[#38bdf8]/30 hover:bg-[#38bdf8]/5"}`}>
@@ -173,8 +173,11 @@ export default function HomePage() {
                     {step.done ? "✓" : ""}
                   </div>
                   <span className="text-lg">{step.icon}</span>
-                  <span className={`text-sm font-medium ${step.done ? "text-slate-400 line-through" : "text-white"}`}>{step.label}</span>
-                  {!step.done && <span className="ml-auto text-slate-500 text-xs">→</span>}
+                  <div className="flex-1 min-w-0">
+                    <div className={`text-sm font-medium ${step.done ? "text-slate-400 line-through" : "text-white"}`}>{step.label}</div>
+                    {!step.done && <div className="text-xs text-slate-500 mt-0.5">{step.sub}</div>}
+                  </div>
+                  {!step.done && <span className="text-slate-500 text-xs flex-shrink-0">→</span>}
                 </Link>
               ))}
             </div>
@@ -260,10 +263,10 @@ export default function HomePage() {
                 <h3 className="font-semibold text-white mb-3">How it works</h3>
                 <div className="space-y-3">
                   {[
-                    { step: "1", text: "Pick the winner or cover on today's games", icon: "🎯" },
-                    { step: "2", text: "Earn points for every correct pick", icon: "⭐" },
-                    { step: "3", text: "Climb the leaderboard and beat your league", icon: "📈" },
-                    { step: "4", text: "Talk trash in communities with other pickers", icon: "🔥" },
+                    { step: "1", text: "Add friends and create a league to compete head-to-head", icon: "🏆" },
+                    { step: "2", text: "Join communities to talk picks and find competition", icon: "👥" },
+                    { step: "3", text: "Pick the spread on daily games and earn points", icon: "🎯" },
+                    { step: "4", text: "Top the leaderboard and prove you know sports", icon: "📈" },
                   ].map((item) => (
                     <div key={item.step} className="flex items-start gap-3">
                       <span className="text-xl flex-shrink-0">{item.icon}</span>
